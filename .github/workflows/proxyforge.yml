@@ -1,38 +1,67 @@
 name: ProxyForge
+
 on:
   workflow_dispatch:
+
   schedule:
-    - cron: '0,45 * * * *'
+    - cron: "0,45 * * * *"
+
 permissions:
   contents: write
+
 concurrency:
   group: proxyforge
   cancel-in-progress: false
+
 jobs:
-  collect:
+  proxyforge:
     runs-on: ubuntu-24.04
-    timeout-minutes: 48
+    timeout-minutes: 45
+
     env:
-      TRANSFER_BASE: https://nondurable-tabetha-cellular.ngrok-free.dev
-      CYCLE_SECONDS: '2580'
-      UPLOAD_SECONDS: '600'
-      OUTPUT_DIR: proxy-lists
+      PYTHONUNBUFFERED: "1"
+      TRANSFER_URL: "https://nondurable-tabetha-cellular.ngrok-free.dev"
+      RUN_MINUTES: "43"
+      UPLOAD_INTERVAL: "600"
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - uses: actions/setup-python@v5
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Configure Git identity
+          python-version: "3.12"
+
+      - name: Configure Git
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-      - name: Run scraper and publish periodic snapshots
-        shell: bash
-        run: python3 .github/proxyforge_runner.py
-      - name: Commit final files even on failure
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify files
+        run: |
+          test -f pfm_fixed.py
+          test -f .github/proxyforge_runner.py
+
+      - name: Run ProxyForge
+        run: |
+          python -u .github/proxyforge_runner.py
+
+      - name: Save final results
         if: always()
-        shell: bash
         run: |
-          python3 .github/proxyforge_runner.py --finalize-only || true
+          git add README.md || true
+
+          find . -maxdepth 1 \
+            -type f \
+            -name '*proxies*.txt' \
+            -exec git add -f -- {} +
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update ProxyForge results [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
