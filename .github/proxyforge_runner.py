@@ -129,7 +129,7 @@ def main():
         return
     OUT.mkdir(parents=True, exist_ok=True)
     cmd = [sys.executable, '-u', 'pfm_fixed.py', '--type', *KINDS,
-           '--supersonic', '--output-dir', str(OUT), '--count', '1000',
+           '--supersonic', '--output-dir', str(OUT), '--count', '10000',
            '--fetch-concurrency', '500', '--fast-window', '0.15',
            '--tunnel-timeout', '8', '--source-timeout', '8',
            '--max-candidates', '250000']
