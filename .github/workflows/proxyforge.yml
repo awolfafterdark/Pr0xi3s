@@ -15,14 +15,24 @@ concurrency:
 
 jobs:
   proxyforge:
+    name: ProxyForge Live Checker
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     env:
       PYTHONUNBUFFERED: "1"
-      TRANSFER_URL: "https://nondurable-tabetha-cellular.ngrok-free.dev"
-      RUN_MINUTES: "43"
-      UPLOAD_INTERVAL: "600"
+
+      # Transfer.sh
+      TRANSFER_BASE: "https://nondurable-tabetha-cellular.ngrok-free.dev"
+
+      # Upload every 5 minutes
+      UPLOAD_SECONDS: "300"
+
+      # Run for 43 minutes
+      CYCLE_SECONDS: "2580"
+
+      # Output directory
+      OUTPUT_DIR: "proxy-lists"
 
     steps:
       - name: Checkout repository
@@ -31,7 +41,7 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -41,27 +51,129 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Verify files
+      - name: Verify ProxyForge files
         run: |
+          set -euo pipefail
+
           test -f pfm_fixed.py
           test -f .github/proxyforge_runner.py
 
-      - name: Run ProxyForge
+          python -m py_compile pfm_fixed.py
+          python -m py_compile .github/proxyforge_runner.py
+
+          mkdir -p proxy-lists
+
+          echo "ProxyForge files verified."
+
+      - name: Initialize README
         run: |
+          if [ ! -f README.md ]; then
+            cat > README.md <<'EOF'
+          # ProxyForge
+
+          Automatically updated proxy lists.
+
+          ## Live Proxy Downloads
+
+          Download links will appear here after the first successful upload.
+          EOF
+          fi
+
+          echo "README initialized."
+
+      - name: Start ProxyForge and live uploads
+        run: |
+          set -euo pipefail
+
+          echo "=========================================="
+          echo "             PROXYFORGE"
+          echo "=========================================="
+          echo "Transfer.sh: $TRANSFER_BASE"
+          echo "Upload interval: ${UPLOAD_SECONDS}s"
+          echo "Runtime: ${CYCLE_SECONDS}s"
+          echo "Protocols: HTTP HTTPS SOCKS4 SOCKS5"
+          echo "=========================================="
+
           python -u .github/proxyforge_runner.py
 
-      - name: Save final results
+      - name: Save final proxy files
         if: always()
         run: |
-          git add README.md || true
+          set -euo pipefail
 
-          find . -maxdepth 1 \
-            -type f \
-            -name '*proxies*.txt' \
-            -exec git add -f -- {} +
+          echo "Saving final proxy lists..."
 
-          if ! git diff --cached --quiet; then
-            git commit -m "Update ProxyForge results [skip ci]"
-            git pull --rebase origin main
-            git push origin HEAD:main
+          python -u .github/proxyforge_runner.py --finalize-only
+
+      - name: Display final results
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "          FINAL PROXY RESULTS"
+          echo "=========================================="
+
+          for type in http https socks4 socks5; do
+            file="proxy-lists/${type}_proxies.txt"
+
+            if [ -f "$file" ]; then
+              count=$(wc -l < "$file")
+              echo "${type^^}: $count proxies"
+            else
+              echo "${type^^}: No results"
+            fi
+          done
+
+          echo "=========================================="
+
+          if [ -f .github/proxyforge_links.json ]; then
+            echo "LATEST TRANSFER.SH LINKS:"
+
+            python - <<'PY'
+          import json
+
+          with open(".github/proxyforge_links.json") as f:
+              links = json.load(f)
+
+          for kind in ("http", "https", "socks4", "socks5"):
+              url = links.get(kind)
+              if url:
+                  print(f"{kind.upper()}: {url}")
+          PY
           fi
+
+      - name: Generate Actions summary
+        if: always()
+        run: |
+          {
+            echo "## ProxyForge Results"
+            echo
+            echo "| Proxy Type | Count | Download |"
+            echo "|---|---:|---|"
+
+            python - <<'PY'
+          import json
+          from pathlib import Path
+
+          links_file = Path(".github/proxyforge_links.json")
+
+          if links_file.exists():
+              links = json.loads(links_file.read_text())
+          else:
+              links = {}
+
+          for kind in ("http", "https", "socks4", "socks5"):
+              path = Path("proxy-lists") / f"{kind}_proxies.txt"
+
+              if path.exists():
+                  count = sum(1 for _ in path.open())
+              else:
+                  count = 0
+
+              url = links.get(kind)
+
+              download = f"[Download]({url})" if url else "Unavailable"
+
+              print(f"| {kind.upper()} | {count} | {download} |")
+          PY
+
+          } >> "$GITHUB_STEP_SUMMARY"
