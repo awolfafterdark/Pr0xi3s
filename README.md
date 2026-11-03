@@ -9,14 +9,14 @@ Download links will appear here after the first successful upload.
 <!-- PROXYFORGE-LINKS-START -->
 ## Latest temporary downloads
 
-Updated: 2026-11-03 19:53 UTC
+Updated: 2026-11-03 19:58 UTC
 
 | Protocol | Transfer.sh link |
 |---|---|
-| HTTP | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/psnHwPSxlR/http_proxies.txt) |
-| HTTPS | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/NHenBHg9uV/https_proxies.txt) |
-| SOCKS4 | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/tEwBp8YHP8/socks4_proxies.txt) |
-| SOCKS5 | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/hoH286YKkJ/socks5_proxies.txt) |
+| HTTP | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/vamaQqIVqJ/http_proxies.txt) |
+| HTTPS | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/jxw0iUna9C/https_proxies.txt) |
+| SOCKS4 | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/DxioCc8lAk/socks4_proxies.txt) |
+| SOCKS5 | [Download](https://nondurable-tabetha-cellular.ngrok-free.dev/20jkYJmacf/socks5_proxies.txt) |
 
 Links are temporary and may expire or become unavailable when the hosting runner restarts.
 <!-- PROXYFORGE-LINKS-END -->
